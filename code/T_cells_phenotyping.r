@@ -1,5 +1,8 @@
 #### Extracting out the T cells
-Tcells_names <- grep("T cells", levels(Tcell_obj@meta.data$cell_type), value = TRUE)
+library(Seurat)
+library(dplyr)
+immune <- readRDS("/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/raw_data/TICAtlas_RNA.rds")
+Tcells_names <- grep("T cells", levels(immune@meta.data$cell_type), value = TRUE)
 Tcell_type <- c(Tcells_names, "T helper cells", "Th17 cells")
 Tcellnames <- rownames(immune@meta.data[grep(paste0("^", Tcell_type, "$", collapse = "|"), immune@meta.data$cell_type), ])
 Tcell_obj <- subset(immune, cells = Tcellnames)
@@ -38,14 +41,21 @@ dir.create(savedir, showWarnings = FALSE)
 DefaultAssay(Tcell_obj) <- "RNA"
 
 Tcell_obj <- NormalizeData(Tcell_obj, normalization.method = "LogNormalize", scale.factor = 10000)
-Tcell_obj <- ScaleData(Tcell_obj, features = rownames(immune))
 
-Tcell_obj <- FindVariableFeatures(Tcell_obj)
+features <- rownames(Tcell_obj)
+chunk_size <- 10000
+
+for (i in seq(1, length(features), by = chunk_size)) {
+    chunk <- features[i:min(i + chunk_size - 1, length(features))]
+    Tcell_obj <- ScaleData(Tcell_obj, features = chunk, do.center = TRUE, do.scale = TRUE)
+}
+
+
+Tcell_obj <- FindVariableFeatures(Tcell_obj, nfeatures = 4000)
 Tcell_obj <- Tcell_obj %>%
     RunPCA(verbose = FALSE) %>%
     RunUMAP(dims = 1:30)
 
-# pdf("/diazlab/data3/.abhinav/projects/SHH/snRNA/removed_samples_BO/Endothelial/EndoDimPlot_patient.pdf")
 dir.create(paste(savedir, "UMAP", sep = ""), showWarnings = FALSE)
 pdf(paste(savedir, "UMAP/Tcell_vague.pdf", sep = ""))
 DimPlot(Tcell_obj, reduction = "umap", group.by = "cell_type")

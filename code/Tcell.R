@@ -283,39 +283,3 @@ dev.off()
 pdf(paste0(savedir, "UMAP/CD8_subset.pdf"))
 DimPlot(CD8_subset)
 dev.off()
-
-#### Extracting out the T cells
-Tcells_names <- grep("T cells", levels(Tcell_obj@meta.data$cell_type), value = TRUE)
-Tcell_type <- c(Tcells_names, "T helper cells", "Th17 cells")
-Tcellnames <- rownames(immune@meta.data[grep(paste0("^", Tcell_type, "$", collapse = "|"), immune@meta.data$cell_type), ])
-Tcell_obj <- subset(immune, cells = Tcellnames)
-
-genes <- c("CD4", "CD8A", "CD8B", "IFIT3", "FOXP3", "TIGIT", "IFNG", "CCL4", "IL7R", "GZMA", "PDCD1", "HAVCR2")
-p <- VlnPlot(Tcell_obj, genes, group.by = "cell_type", pt.size = 0)
-
-dir.create(paste0(savedir, "Vlnplot"), showWarnings = FALSE)
-pdf(paste0(savedir, "Vlnplot/Tcell_genes.pdf"), height = 15, width = 15)
-p
-dev.off()
-
-genes <- c("CD8A", "CD8B", "CD4")
-rm(plot_list)
-plot_list <- list()
-for (i in 1:length(genes)) {
-    plot_list[[i]] <- FeaturePlot(immune, features = genes[i], reduction = "umap", cols = c("grey", "red"), min.cutoff = 1.5)
-    # scale_color_gradientn(colors = ArchRPalettes$solarExtra)
-}
-
-dir.create(paste0(savedir, "featureplot"), showWarnings = FALSE)
-pdf(paste0(savedir, "featureplot/immune_CD8_CD4.pdf"), width = 5.5, height = 15)
-plot_list[[1]] + plot_list[[2]] + plot_list[[3]]
-dev.off()
-
-genes <- c("CD8A", "CD8B", "CD4")
-pdf(paste0(savedir, "featureplot/immune_CD8_CD4_min1.5.pdf"))
-FeaturePlot(immune, features = genes, reduction = "umap", cols = c("grey", "red"), min.cutoff = 1.5, max.cutoff = 5)
-dev.off()
-
-##### Performing the analysis
-savedir <- "/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/cell_phenotyping/downstream2/Tcells/"
-dir.create(savedir, showWarnings = FALSE)
