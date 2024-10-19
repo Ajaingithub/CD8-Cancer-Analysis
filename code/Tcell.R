@@ -283,3 +283,46 @@ dev.off()
 pdf(paste0(savedir, "UMAP/CD8_subset.pdf"))
 DimPlot(CD8_subset)
 dev.off()
+
+
+source("/diazlab/data3/.abhinav/resources/all_scripts/R/scCITESeq_sctransform_V2.R")
+objname <- "Tcell_obj"
+Assay <- "RNA"
+process <- "sctransform"
+Tcell_obj_sctransformed <- sctransform_V2_integration(
+    obj = Tcell_obj,
+    saveDir = savedir,
+    ngenes = 4000,
+    regress = c("nCount_RNA"),
+    dims = 30,
+    Assay = Assay,
+    process = process,
+    objname = objname,
+    split_by = "subtype",
+    reference = NULL,
+    sample_tree = NULL
+)
+
+Tcell_subset <- sample(rownames(Tcell_obj@meta.data), size = 70000)
+Tcell_obj_subset <- subset(Tcell_obj, cells = Tcell_subset)
+
+savedir <- "/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/cell_phenotyping/downstream2/Tcells_subset/"
+dir.create(savedir, showWarnings = FALSE)
+
+source("/diazlab/data3/.abhinav/resources/all_scripts/R/scCITESeq_sctransform_V2.R")
+objname <- "Tcell_obj_subset"
+Assay <- "RNA"
+process <- "sctransform"
+Tcell_obj_subset_sctransformed <- sctransform_V2_integration(
+    obj = Tcell_obj_subset,
+    saveDir = savedir,
+    ngenes = 4000,
+    regress = c("nCount_RNA"),
+    dims = 30,
+    Assay = Assay,
+    process = process,
+    objname = objname,
+    split_by = "subtype",
+    reference = NULL,
+    sample_tree = NULL
+)

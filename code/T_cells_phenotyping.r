@@ -15,7 +15,6 @@ pdf(paste0(savedir, "Vlnplot/Tcell_genes.pdf"), height = 15, width = 15)
 p
 dev.off()
 
-genes <- c("CD8A", "CD8B", "CD4")
 rm(plot_list)
 plot_list <- list()
 for (i in 1:length(genes)) {
@@ -42,22 +41,23 @@ DefaultAssay(Tcell_obj) <- "RNA"
 
 Tcell_obj <- NormalizeData(Tcell_obj, normalization.method = "LogNormalize", scale.factor = 10000)
 
-features <- rownames(Tcell_obj)
-chunk_size <- 10000
+# features <- rownames(Tcell_obj)
+# chunk_size <- 10000
 
-for (i in seq(1, length(features), by = chunk_size)) {
-    chunk <- features[i:min(i + chunk_size - 1, length(features))]
-    Tcell_obj <- ScaleData(Tcell_obj, features = chunk, do.center = TRUE, do.scale = TRUE)
-}
-
+# for (i in seq(1, length(features), by = chunk_size)) {
+#     chunk <- features[i:min(i + chunk_size - 1, length(features))]
+#     Tcell_obj <- ScaleData(Tcell_obj, features = chunk, do.center = TRUE, do.scale = TRUE)
+# }
+Tcell_obj <- ScaleData(Tcell_obj)
 
 Tcell_obj <- FindVariableFeatures(Tcell_obj, nfeatures = 4000)
 Tcell_obj <- Tcell_obj %>%
     RunPCA(verbose = FALSE) %>%
     RunUMAP(dims = 1:30)
 
-dir.create(paste(savedir, "UMAP", sep = ""), showWarnings = FALSE)
-pdf(paste(savedir, "UMAP/Tcell_vague.pdf", sep = ""))
+savedir <- "/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/cell_phenotyping/downstream2/Tcells/"
+dir.create(paste(savedir, "UMAP", sep = ""), showWarnings = FALSE, recursive = TRUE)
+pdf(paste(savedir, "UMAP/Tcell.pdf", sep = ""))
 DimPlot(Tcell_obj, reduction = "umap", group.by = "cell_type")
 dev.off()
 
@@ -122,8 +122,6 @@ pdf(paste0(savedir, "/dotplot/CD4_CD8_SCT.pdf"), height = 5, width = 10)
 print(p)
 dev.off()
 
-
-
 ### Performing the clustering
 # Find neighbors based on the UMAP reduction
 Tcell_obj <- FindNeighbors(
@@ -157,8 +155,9 @@ dev.off()
 
 # Perform clustering
 DefaultAssay(Tcell_obj) <- "RNA"
+genes <- c("CD3E", "CD3D", "CD3G", "TRAC", "TRBC", "PTPRC", "CD4", "IL7R", "FOXP3", "CXCR5", "CD8A", "CD8B", "GZMB", "PRF1", "GZMK")
 
-res <- c(1.2, 1.4, 1.6, 1.8, 2)
+res <- c(0.2, 0.4, 0.6)
 for (i in 1:length(res)) {
     Tcell_obj <- FindClusters(
         Tcell_obj,
@@ -178,18 +177,96 @@ for (i in 1:length(res)) {
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
     dir.create(paste0(savedir, "/dotplot/"), showWarnings = FALSE, recursive = TRUE)
-    pdf(paste0(savedir, "/dotplot/CD4_CD8_RNA_", res[i], ".pdf"), height = 5, width = 10)
+    pdf(paste0(savedir, "/dotplot/CD4_CD8_RNA_", res[i], ".pdf"), height = 5, width = 15)
     print(p)
     dev.off()
-
-    # p <- DotPlot(Tcell_obj, genes, assay = "MAGIC_RNA") +
-    #     scale_color_gradientn(colors = ArchRPalettes$solarExtra) +
-    #     coord_flip() +
-    #     scale_size(range = c(1, 10)) +
-    #     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-
-    # dir.create(paste0(savedir, "/dotplot/"), showWarnings = FALSE, recursive = TRUE)
-    # pdf(paste0(savedir, "/dotplot/CD4_CD8_MAGIC_RNA_", res[i], ".pdf"), height = 5, width = 10)
-    # print(p)
-    # dev.off()
 }
+
+p <- DotPlot(Tcell_obj, genes, assay = "RNA") +
+    scale_color_gradientn(colors = ArchRPalettes$solarExtra) +
+    coord_flip() +
+    scale_size(range = c(1, 10)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+dir.create(paste0(savedir, "/dotplot/"), showWarnings = FALSE, recursive = TRUE)
+pdf(paste0(savedir, "/dotplot/CD4_CD8_RNA_", res[i], ".pdf"), height = 5, width = 15)
+print(p)
+dev.off()
+
+genes <- c("CD4", "CD8A", "CD8B", "GZMB", "PRF1", "GZMK")
+savedir <- "/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/cell_phenotyping/downstream2/Tcells/"
+p <- DotPlot(Tcell_obj, genes, assay = "RNA", group.by = "cell_type") +
+    scale_color_gradientn(colors = c(
+        "royalblue2", "royalblue1", "royalblue1", "lightblue2", "lightblue2",
+        "lightpink2", "indianred1", "indianred3", "indianred4", "firebrick4"
+    )) +
+    # scale_color_gradientn(colors = ArchRPalettes$solarExtra) +
+    # coord_flip() +
+    scale_size(range = c(1, 10)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+dir.create(paste0(savedir, "/dotplot/"), showWarnings = FALSE, recursive = TRUE)
+pdf(paste0(savedir, "/dotplot/CD4_CD8_RNA_only_Tcells_4.pdf"), height = 7, width = 9)
+print(p)
+dev.off()
+
+rm(plot_list)
+plot_list <- list()
+for (i in 1:length(Tcell_type)) {
+    cellhighlight <- rownames(Tcell_obj@meta.data[grep(Tcell_type[i], immune@meta.data$cell_type), ])
+    p <- DimPlot(Tcell_obj,
+        group.by = "cell_type", reduction = "harmonyumap",
+        cells.highlight = cellhighlight, cols.highlight = "red", label = FALSE
+    ) + ggtitle(Tcell_type[i])
+    plot_list[[i]] <- p
+}
+
+pdf(paste0(savedir, "UMAP/splitted_celltypes.pdf"))
+plot_list
+dev.off()
+
+
+#### Performing integration using RPCA
+savedir <- "/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/cell_phenotyping/downstream2/Tcells/"
+source("/diazlab/data3/.abhinav/resources/all_scripts/R/scCITESeq_ADT_merging.R")
+Tcell_obj <- ADT_merging(Tcell_obj, savedir,
+    Assay = "RNA", dims = 30, numfeatures = 3000,
+    process = "RPCA", objname = "Tcell_RPCA",
+    sample_tree = NULL, split_by = "subtype",
+    reference = NULL
+)
+
+DefaultAssay(Tcell_obj) <- "RNA"
+Tcell_obj <- NormalizeData(Tcell_obj, normalization.method = "LogNormalize", scale.factor = 10000)
+Tcell_obj <- ScaleData(Tcell_obj)
+
+Tcell_obj <- FindVariableFeatures(Tcell_obj, nfeatures = 4000)
+Tcell_obj <- Tcell_obj %>%
+    RunPCA(verbose = FALSE)
+
+
+library(harmony)
+Tcell_obj <- RunHarmony(
+    Tcell_obj,
+    group.by.vars = "patient",
+    reduction.use = "pca",
+    assay.use = "RNA",
+    reduction.save = "harmony"
+)
+
+t_obj <- RunUMAP(
+    t_obj,
+    assay = "RNA",
+    reduction.key = "harmonyUMAP_",
+    reduction = "harmony",
+    reduction.name = "harmonyumap",
+    dims = 1:30
+)
+
+p1 <- DimPlot(t_obj, reduction = "harmonyumap", label = TRUE, group.by = "cell_type")
+p2 <- DimPlot(t_obj, reduction = "harmonyumap", label = FALSE, group.by = "patient") + NoLegend()
+p3 <- DimPlot(t_obj, reduction = "harmonyumap", label = TRUE, group.by = "subtype")
+
+pdf(paste0(savedir, "UMAP/harmony_celltype_patient_subtype.pdf"), width = 15, height = 5.5)
+p1 + p2 + p3
+dev.off()
