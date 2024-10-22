@@ -326,3 +326,7 @@ Tcell_obj_subset_sctransformed <- sctransform_V2_integration(
     reference = NULL,
     sample_tree = NULL
 )
+
+Tcell_obj_subset_sctransformed <- RunUMAP(Tcell_obj_subset_sctransformed, dims = 1:30, reduction = "pca")
+Tcell_obj_subset_sctransformed <- FindNeighbors(Tcell_obj_subset_sctransformed, dims = 1:30)
+Tcell_obj_subset_sctransformed <- FindClusters(Tcell_obj_subset_sctransformed, resolution = 0.6, algorithm = 1, verbose = FALSE)

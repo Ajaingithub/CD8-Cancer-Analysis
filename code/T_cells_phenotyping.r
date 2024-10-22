@@ -238,24 +238,24 @@ Tcell_obj <- ADT_merging(Tcell_obj, savedir,
 
 DefaultAssay(Tcell_obj) <- "RNA"
 Tcell_obj <- NormalizeData(Tcell_obj, normalization.method = "LogNormalize", scale.factor = 10000)
+Tcell_obj <- FindVariableFeatures(Tcell_obj, nfeatures = 4000)
 Tcell_obj <- ScaleData(Tcell_obj)
 
-Tcell_obj <- FindVariableFeatures(Tcell_obj, nfeatures = 4000)
+
 Tcell_obj <- Tcell_obj %>%
     RunPCA(verbose = FALSE)
-
 
 library(harmony)
 Tcell_obj <- RunHarmony(
     Tcell_obj,
-    group.by.vars = "patient",
+    group.by.vars = "subtype",
     reduction.use = "pca",
     assay.use = "RNA",
     reduction.save = "harmony"
 )
 
-t_obj <- RunUMAP(
-    t_obj,
+Tcell_obj <- RunUMAP(
+    Tcell_obj,
     assay = "RNA",
     reduction.key = "harmonyUMAP_",
     reduction = "harmony",
@@ -269,4 +269,22 @@ p3 <- DimPlot(t_obj, reduction = "harmonyumap", label = TRUE, group.by = "subtyp
 
 pdf(paste0(savedir, "UMAP/harmony_celltype_patient_subtype.pdf"), width = 15, height = 5.5)
 p1 + p2 + p3
+dev.off()
+
+Tcells_names <- grep("T cells", levels(immune@meta.data$cell_type), value = TRUE)
+Tcell_type <- c(Tcells_names, "T helper cells", "Th17 cells")
+
+rm(plot_list)
+plot_list <- list()
+for (i in 1:length(Tcell_type)) {
+    cellhighlight <- rownames(Tcell_obj@meta.data[grep(Tcell_type[i], Tcell_obj@meta.data$cell_type), ])
+    p <- DimPlot(Tcell_obj,
+        group.by = "cell_type", reduction = "harmonyumap",
+        cells.highlight = cellhighlight, cols.highlight = "red", label = FALSE
+    ) + ggtitle(Tcell_type[i])
+    plot_list[[i]] <- p
+}
+savedir <- "/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/cell_phenotyping/downstream2/Tcells/"
+pdf(paste0(savedir, "UMAP/splitted_celltypes_harmony_Tcells.pdf"))
+plot_list
 dev.off()
