@@ -4,6 +4,7 @@ library(Seurat)
 clusters <- c(0, 2, 3, 5, 8, 9, 13, 19, 20, 21, 22, 25)
 CD8_Tcells <- subset(Tcell_obj, idents = clusters)
 
+
 DefaultAssay(CD8_Tcells) <- "RNA"
 CD8_Tcells <- NormalizeData(CD8_Tcells)
 

@@ -1,5 +1,5 @@
 library(Seurat)
-immmune_int <- readRDS("/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/raw_data/TICAtlas.rds")
+immmune_int <- readRDS("/diazlab/data3/.abhinav/.immune/cancer_combined/project/raw_data/TICAtlas.rds")
 DefaultAssay(immmune_int) <- "integrated"
 # immmune_int <- RunUMAP(immmune_int, dims = 1:30, reduction = "pca")
 
@@ -113,30 +113,63 @@ pdf(paste0(savedir, "UMAP/CD8_Tcells.pdf"))
 DimPlot(CD8_subset, group.by = "cell_type")
 dev.off()
 
-p <- DotPlot(Tcell_obj, genes, assay = "RNA", group.by = "cell_type") +
+other_clus <- grep(paste(c("^", 0, 2, 3, 8, 9, 13, 19, 20, 21, 22, 25, 16, 28, "$"), collapse = "$|^", sep = ""), Tcell_obj@meta.data$seurat_clusters, value = TRUE, invert = TRUE) %>% unique()
+
+Tcells_obj@meta.data$seurat_clusters <- factor(Tcells_obj@meta.data$seurat_clusters, levels = c(0, 2, 3, 8, 9, 13, 19, 20, 21, 22, 25, 16, 28, other_clus))
+
+genes <- c("CD4", "CD8A", "CD8B")
+p <- DotPlot(Tcells_obj, genes, assay = "RNA", group.by = "seurat_clusters") +
     scale_color_gradientn(colors = ArchRPalettes$solarExtra) +
     coord_flip() +
     scale_size(range = c(1, 10)) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 dir.create(paste0(savedir, "/dotplot/"), showWarnings = FALSE, recursive = TRUE)
-pdf(paste0(savedir, "/dotplot/CD4_CD8_RNA_celltype.pdf"), height = 10, width = 15)
+pdf(paste0(savedir, "/dotplot/CD4_CD8_RNA_celltype.pdf"), height = 3, width = 12)
 print(p)
+dev.off()
+
+DefaultAssay(Tcells_obj) <- "RNA"
+
+limiting <- c(5, 5, 3.5)
+dir.create(paste0(savedir, "featureplot"), showWarnings = FALSE)
+genes <- c("CD8A", "CD8B", "CD4")
+rm(plot_list)
+plot_list <- list()
+for (i in 1:length(genes)) {
+    plot_list[[i]] <- FeaturePlot(Tcells_obj, features = genes[i], reduction = "umap", min.cutoff = 0.5, max.cutoff = 5) +
+        scale_color_gradientn(colors = ArchRPalettes$solarExtra, limits = c(0.5, limiting[i]))
+    # scale_color_gradientn(colors = c("royalblue2", "royalblue1", "lightpink2", "lightpink2", "lightpink2", "indianred1", "indianred3", "indianred4", "firebrick4"))
+}
+
+dir.create(paste0(savedir, "featureplot"), showWarnings = FALSE)
+pdf(paste0(savedir, "featureplot/CD8_CD4_2.pdf"), width = 5.5, height = 15)
+plot_list[[1]] + plot_list[[2]] + plot_list[[3]]
+dev.off()
+
+dir.create(paste0(savedir, "UMAP/"), showWarnings = FALSE)
+pdf(paste0(savedir, "UMAP/Tcell_dimplot.pdf"))
+DimPlot(Tcells_obj, label = TRUE, label.size = 5)
+dev.off()
+
+dir.create(paste0(savedir, "UMAP/"), showWarnings = FALSE)
+pdf(paste0(savedir, "UMAP/Tcell_dimplot.pdf"))
+DimPlot(Tcells_obj, label = TRUE)
 dev.off()
 
 saveRDS(Tcell_obj, "/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/cell_phenotyping/downstream2/paper_integrated/Tcell_obj.RDS")
 
 ### extracting out the CD8 T cells
-clusters <- c(0, 2, 3, 5, 8, 9, 13, 19, 20, 21, 22, 25)
+clusters <- c(0, 2, 3, 8, 9, 13, 19, 20, 21, 22, 25)
 CD8_Tcells <- subset(Tcell_obj, idents = clusters)
 
 savedir <- "/diazlab/data3/.abhinav/.industry/Genentech/panel_discussion/cell_phenotyping/downstream2/CD8/"
-dir.create(paste0(savedir,"UMAP"), showWarning = FALSE, recursive = TRUE)
+dir.create(paste0(savedir, "UMAP"), showWarning = FALSE, recursive = TRUE)
 
-pdf(paste0(savedir,"UMAP/CD8_dimplot.pdf"))
+pdf(paste0(savedir, "UMAP/CD8_dimplot.pdf"))
 DimPlot(CD8_Tcells)
 dev.off()
 
-pdf(paste0(savedir,"UMAP/CD8_celltype.pdf"))
+pdf(paste0(savedir, "UMAP/CD8_celltype.pdf"))
 DimPlot(CD8_Tcells, group.by = "cell_type")
 dev.off()
